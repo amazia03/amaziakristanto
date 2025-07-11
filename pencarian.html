@@ -1,0 +1,42 @@
+---
+layout: layout.html
+title: Hasil Pencarian
+---
+
+<main>
+  <div class="container">
+    <h2 class="animate-on-scroll">Hasil Pencarian</h2>
+    <p
+      class="animate-on-scroll"
+      id="search-query-display"
+      style="margin-bottom: 40px"
+    ></p>
+    <div id="search-results-container" class="animate-on-scroll">
+      <p>Memuat hasil...</p>
+    </div>
+  </div>
+</main>
+
+<script>
+  // Script pencarian lama Anda bisa diletakkan di sini,
+  // namun perlu penyesuaian untuk mengambil data dari file json yang sudah di-pass-through
+  // oleh Eleventy. Ini adalah langkah lanjutan setelah semua halaman utama berfungsi.
+  document.addEventListener("DOMContentLoaded", function () {
+    const resultsContainer = document.getElementById(
+      "search-results-container"
+    );
+    const queryDisplay = document.getElementById("search-query-display");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const query = urlParams.get("q");
+
+    if (!query) {
+      queryDisplay.textContent = "Silakan masukkan kata kunci pencarian.";
+      resultsContainer.innerHTML = "";
+      return;
+    }
+    queryDisplay.textContent = `Hasil pencarian untuk: "${query}"`;
+    resultsContainer.innerHTML =
+      "<p>Fungsi pencarian sedang dalam pengembangan.</p>";
+  });
+</script>

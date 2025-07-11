@@ -1,0 +1,203 @@
+---
+layout: layout.html
+title: Reading
+---
+
+<style>
+  /* CSS untuk Auto-suggestion Box */
+  .autocomplete-items {
+    position: absolute;
+    border: 1px solid var(--border-color);
+    border-top: none;
+    z-index: 99;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--surface-color);
+  }
+  .autocomplete-items div {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .autocomplete-items div:hover {
+    background-color: #222;
+  }
+  .search-container {
+    position: relative; /* Diperlukan untuk positioning dropdown */
+  }
+</style>
+
+<div class="container">
+  <h2 class="animate-on-scroll">Reading</h2>
+  <p class="animate-on-scroll" style="margin-bottom: 50px">
+    Kumpulan tulisan yang telah dikelompokkan berdasarkan kategori. Klik
+    kategori untuk melihat daftar judul.
+  </p>
+
+  <div class="controls-container animate-on-scroll">
+    <div class="search-container" style="flex-grow: 1">
+      <input
+        type="text"
+        id="search-input"
+        class="page-search-input"
+        placeholder="Cari berdasarkan judul atau kategori..."
+        list="reading-suggestions"
+      />
+      <datalist id="reading-suggestions">
+        {% for kategori in articles.kategori %}
+        <option value="{{ kategori.nama }}"></option>
+        {% for artikel in kategori.artikel %}
+        <option value="{{ artikel.judul }}"></option>
+        {% endfor %} {% endfor %}
+      </datalist>
+    </div>
+  </div>
+
+  <div id="kategori-container" class="animate-on-scroll">
+    {% for kategori in articles.kategori %}
+    <div class="artikel-grup">
+      <h3 class="kategori-judul">
+        <span class="kategori-nama-teks">{{ kategori.nama }}</span>
+        <i class="fas fa-plus icon"></i>
+      </h3>
+      <div class="artikel-judul-list">
+        <ul>
+          {% for artikel in kategori.artikel %}
+          <li><a href="{{ artikel.url }}">{{ artikel.judul }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("search-input");
+    const allKategori = document.querySelectorAll(".artikel-grup");
+
+    // Simpan data asli untuk reset & suggestion
+    let originalData = [];
+    allKategori.forEach((grup) => {
+      const kategoriNama = grup.querySelector(".kategori-nama-teks");
+      const linkArtikels = grup.querySelectorAll("li a");
+      kategoriNama.originalHTML = kategoriNama.innerHTML;
+      originalData.push({
+        type: "kategori",
+        text: kategoriNama.textContent,
+        element: grup,
+      });
+
+      linkArtikels.forEach((link) => {
+        link.originalHTML = link.innerHTML;
+        originalData.push({
+          type: "artikel",
+          text: link.textContent,
+          element: link.parentElement,
+        });
+      });
+    });
+
+    function highlightText(element, searchTerm, originalHTML) {
+      if (!searchTerm) {
+        element.innerHTML = originalHTML;
+        return;
+      }
+      const regex = new RegExp(searchTerm, "gi");
+      element.innerHTML = originalHTML.replace(
+        regex,
+        `<span class="highlight">$&</span>`
+      );
+    }
+
+    function filterContent() {
+      const searchTerm = searchInput.value.toLowerCase();
+
+      allKategori.forEach((grup) => {
+        let isGrupVisible = false;
+        const namaKategoriSpan = grup.querySelector(".kategori-nama-teks");
+        const listItems = grup.querySelectorAll("ul li");
+
+        highlightText(
+          namaKategoriSpan,
+          searchTerm,
+          namaKategoriSpan.originalHTML
+        );
+        if (namaKategoriSpan.textContent.toLowerCase().includes(searchTerm))
+          isGrupVisible = true;
+
+        listItems.forEach((item) => {
+          const link = item.querySelector("a");
+          highlightText(link, searchTerm, link.originalHTML);
+          if (link.textContent.toLowerCase().includes(searchTerm)) {
+            item.style.display = "";
+            isGrupVisible = true;
+          } else {
+            item.style.display = "none";
+          }
+        });
+        grup.style.display = isGrupVisible ? "" : "none";
+      });
+    }
+
+    function showSuggestions() {
+      const searchTerm = searchInput.value;
+      closeAllLists();
+      if (!searchTerm) return;
+
+      const suggestionBox = document.createElement("div");
+      suggestionBox.setAttribute("id", "autocomplete-list");
+      suggestionBox.setAttribute("class", "autocomplete-items");
+      searchInput.parentNode.appendChild(suggestionBox);
+
+      const suggestions = originalData
+        .filter((item) =>
+          item.text.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .slice(0, 5);
+
+      suggestions.forEach((sugg) => {
+        const itemDiv = document.createElement("div");
+        itemDiv.innerHTML = sugg.text.replace(
+          new RegExp(searchTerm, "gi"),
+          "<strong>$&</strong>"
+        );
+        itemDiv.addEventListener("click", function () {
+          searchInput.value = sugg.text;
+          filterContent();
+          closeAllLists();
+        });
+        suggestionBox.appendChild(itemDiv);
+      });
+    }
+
+    function closeAllLists(elmnt) {
+      const x = document.getElementsByClassName("autocomplete-items");
+      for (let i = 0; i < x.length; i++) {
+        if (elmnt != x[i] && elmnt != searchInput) {
+          x[i].parentNode.removeChild(x[i]);
+        }
+      }
+    }
+
+    // --- Accordion Setup ---
+    const kategoriJudul = document.querySelectorAll(".kategori-judul");
+    kategoriJudul.forEach((judul) => {
+      judul.addEventListener("click", function () {
+        this.classList.toggle("aktif");
+        this.nextElementSibling.style.maxHeight = this.classList.contains(
+          "aktif"
+        )
+          ? this.nextElementSibling.scrollHeight + "px"
+          : null;
+      });
+    });
+
+    // --- Event Listeners ---
+    searchInput.addEventListener("input", debounce(filterContent, 300));
+    searchInput.addEventListener("input", debounce(showSuggestions, 300));
+    document.addEventListener("click", (e) => closeAllLists(e.target));
+  });
+</script>

@@ -1,0 +1,59 @@
+# Nama workflow yang akan muncul di tab "Actions" GitHub
+name: Build and Deploy to GitHub Pages
+
+# Pemicu: Kapan workflow ini harus berjalan?
+# Yaitu setiap kali ada 'push' ke branch 'main'
+on:
+  push:
+    branches:
+      - main
+
+# Izin yang dibutuhkan oleh workflow untuk menulis ke GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Pekerjaan yang akan dilakukan
+jobs:
+  # Pekerjaan pertama: Membangun situs (build)
+  build:
+    runs-on: ubuntu-latest # Menggunakan server Linux dari GitHub
+    steps:
+      # Langkah 1: Mengunduh kode dari repository Anda ke server
+      - name: Checkout your repository
+        uses: actions/checkout@v4
+
+      # Langkah 2: Menyiapkan Node.js di server
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # Gunakan versi Node.js yang Anda pakai
+          cache: "npm"
+
+      # Langkah 3: Menginstall semua dependensi (seperti Eleventy)
+      - name: Install dependencies
+        run: npm install
+
+      # Langkah 4: Menjalankan perintah build (npm run build -> eleventy)
+      - name: Build the site
+        run: npm run build # Ini akan membuat folder _site di server
+
+      # Langkah 5: Mengunggah hasil build (_site) sebagai artifact
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site # Path ke folder hasil build
+
+  # Pekerjaan kedua: Men-deploy situs
+  deploy:
+    needs: build # Pekerjaan ini baru berjalan setelah 'build' selesai
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }} # Untuk menampilkan URL di log
+    steps:
+      # Langkah 1: Men-deploy artifact yang sudah di-upload tadi ke GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
