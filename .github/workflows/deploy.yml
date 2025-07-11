@@ -37,7 +37,7 @@ jobs:
 
       # Langkah 4: Menjalankan perintah build (npm run build -> eleventy)
       - name: Build the site
-        run: npx @11ty/eleventy# Ini akan membuat folder _site di server
+        run: npm run build # Ini akan membuat folder _site di server
 
       # Langkah 5: Mengunggah hasil build (_site) sebagai artifact
       - name: Upload artifact
